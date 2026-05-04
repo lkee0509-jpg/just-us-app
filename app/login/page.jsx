@@ -67,24 +67,17 @@ export default function LoginPage() {
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${location.origin}/api/auth/callback`
+        emailRedirectTo: `${location.origin}/api/auth/callback`,
+        data: {
+          username: form.username,
+          phone_number: form.phone,
+          location_name: locationName,
+          zodiac_sign: form.zodiac,
+        }
       }
     })
 
     if (error) { setError(error.message); setLoading(false); return }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        username: form.username,
-        phone_number: form.phone,
-        location_name: locationName,
-        location_lat: lat,
-        location_lon: lon,
-        zodiac_sign: form.zodiac,
-      })
-      if (profileError) { setError(profileError.message); setLoading(false); return }
-    }
 
     setLoading(false)
     setError('Check your email to confirm your account, then come back to log in.')
