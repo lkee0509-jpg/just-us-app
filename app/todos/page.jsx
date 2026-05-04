@@ -49,10 +49,10 @@ export default function TodosPage() {
     e.preventDefault()
     if (!newTitle.trim() || !profile) return
     setAdding(true)
-
+    const { data: { session } } = await supabase.auth.getSession()
     await fetch('/api/todos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ title: newTitle.trim(), description: newDesc.trim() })
     })
 
@@ -64,9 +64,10 @@ export default function TodosPage() {
 
   async function toggleTask(task) {
     setCompletingId(task.id)
+    const { data: { session } } = await supabase.auth.getSession()
     await fetch(`/api/todos/${task.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ completed: !task.completed })
     })
     setCompletingId(null)
@@ -74,7 +75,8 @@ export default function TodosPage() {
 
   async function deleteTask(taskId) {
     if (!confirm('Delete this task?')) return
-    await fetch(`/api/todos/${taskId}`, { method: 'DELETE' })
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch(`/api/todos/${taskId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.access_token}` } })
   }
 
   const pending = tasks.filter(t => !t.completed)
