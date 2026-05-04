@@ -1,42 +1,38 @@
-// GET /api/todos — fetch all tasks
-// POST /api/todos — create a new task
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabaseServer'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET() {
-  const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .order('created_at', { ascending: false })
-
+export async function GET(request) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+  if (authError || !user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ tasks: data })
 }
 
 export async function POST(request) {
-  const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+  if (authError || !user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   const body = await request.json()
   const { title, description } = body
-
   if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
-
-  // Get current user's profile for their name
   const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single()
-
   const { data, error } = await supabase.from('tasks').insert({
     title: title.trim(),
     description: description?.trim() || null,
     created_by_id: user.id,
     created_by_name: profile?.username || 'Someone',
   }).select().single()
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ task: data })
 }
